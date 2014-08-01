@@ -49,6 +49,8 @@ public abstract class TypedPropertyListTO {
 	private static final Logger logger = Logger.getLogger(TypedPropertyListTO.class.getSimpleName());
 	private static final Map<String, Class<? extends TypedPropertyElementConverter>> CONVERTERS = Maps.newHashMap();
 
+	private boolean committed = false;
+
 	static {
 		CONVERTERS.put(PasswordTypedPropertyElementConverter.PROPERTY_NAME.toLowerCase(), PasswordTypedPropertyElementConverter.class);
 	}
@@ -68,6 +70,18 @@ public abstract class TypedPropertyListTO {
 	}
 
 	public Map<String, String> getSettings() {
+    // TODO [low] AbstractInitCommand#createConnectionTOFromOptions does not use Simple's Persister to restore options hence commit isn't called
+		if (!committed) {
+			try {
+				commit();
+			}
+			catch (ConfigException e) {
+				if (logger.isLoggable(Level.FINE)) {
+					logger.log(Level.FINE, "Commit operation did not run, some things might break", e);
+				}
+			}
+		}
+
 		return settings;
 	}
 
@@ -94,6 +108,8 @@ public abstract class TypedPropertyListTO {
 				}
 			}
 		}
+
+		committed = true;
 	}
 
 	@Persist
@@ -115,5 +131,7 @@ public abstract class TypedPropertyListTO {
 				}
 			}
 		}
+
+		committed = false;
 	}
 }
