@@ -18,6 +18,7 @@
 package org.syncany.config.to.converters;
 
 import com.google.common.base.Charsets;
+import org.syncany.config.UserConfigKeys;
 import org.syncany.crypto.CipherException;
 import org.syncany.crypto.CipherUtil;
 import org.syncany.util.StringUtil;
@@ -29,6 +30,10 @@ import javax.crypto.spec.SecretKeySpec;
 import java.security.NoSuchAlgorithmException;
 
 /**
+ * Passwords (i.e. fields named password) in configuration files are stored encrypted with AES/CBC/PKCS5PADDING using
+ * {@link org.syncany.config.UserConfigKeys.System#STORAGE_SECRET} as password and
+ * {@link org.syncany.config.UserConfigKeys.System#STORAGE_SECRET} as iv.
+ *
  * @author Christian Roth <christian.roth@port17.de>
  */
 
@@ -39,28 +44,41 @@ public class PasswordTypedPropertyElementConverter implements TypedPropertyEleme
 	private final Cipher cipher;
 
 	public PasswordTypedPropertyElementConverter() throws NoSuchPaddingException, NoSuchAlgorithmException, CipherException {
-    CipherUtil.enableUnlimitedStrength();
+		CipherUtil.enableUnlimitedStrength();
 		cipher = Cipher.getInstance("AES");
 	}
 
 	/**
 	 * Decode from base64 and decrypt the password
+	 *
+	 * @inheritDoc
 	 */
 	@Override
 	public String from(String in) throws Exception {
-		cipher.init(Cipher.DECRYPT_MODE, new SecretKeySpec(StringUtil.fromHex(System.getProperty("storage.passwordsecret")), CIPHER_NAME),
-			new IvParameterSpec(StringUtil.fromHex(System.getProperty("storage.passwordiv"))));
+
+		if (in == null) {
+			return "";
+		}
+
+		cipher.init(Cipher.DECRYPT_MODE, new SecretKeySpec(StringUtil.fromHex(System.getProperty(UserConfigKeys.System.STORAGE_SECRET.toString())),
+				CIPHER_NAME), new IvParameterSpec(StringUtil.fromHex(System.getProperty(UserConfigKeys.System.STORAGE_IV.toString()))));
 
 		return new String(cipher.doFinal(StringUtil.fromHex(in)));
 	}
 
 	/**
 	 * Encrypt the password and encode as base64
+	 *
+	 * @inheritDoc
 	 */
 	@Override
-  public String to(String out) throws Exception {
-		cipher.init(Cipher.ENCRYPT_MODE, new SecretKeySpec(StringUtil.fromHex(System.getProperty("storage.passwordsecret")), CIPHER_NAME),
-			new IvParameterSpec(StringUtil.fromHex(System.getProperty("storage.passwordiv"))));
+	public String to(String out) throws Exception {
+
+		if (out == null) {
+			return "";
+		}
+		cipher.init(Cipher.ENCRYPT_MODE, new SecretKeySpec(StringUtil.fromHex(System.getProperty(UserConfigKeys.System.STORAGE_SECRET.toString())),
+				CIPHER_NAME), new IvParameterSpec(StringUtil.fromHex(System.getProperty(UserConfigKeys.System.STORAGE_IV.toString()))));
 
 		return StringUtil.toHex(cipher.doFinal(out.getBytes(Charsets.UTF_8)));
 	}

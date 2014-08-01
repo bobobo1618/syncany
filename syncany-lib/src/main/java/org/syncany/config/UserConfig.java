@@ -149,8 +149,9 @@ public class UserConfig {
 			UserConfigTO userConfigTO = UserConfigTO.load(userConfigFile);
 
 			for (Map.Entry<String, String> systemProperty : userConfigTO.getSystemProperties().entrySet()) {
-				System.setProperty(systemProperty.getKey(), systemProperty.getValue());
+				System.setProperty(UserConfigKeys.System.fromString(systemProperty.getKey()).toString(), systemProperty.getValue());
 			}
+
 		}
 		catch (ConfigException e) {
 			System.err.println("ERROR: " + e.getMessage());
@@ -166,8 +167,8 @@ public class UserConfig {
 			byte[] passwordIv = new BigInteger(127, new SecureRandom()).toByteArray();
 
 			UserConfigTO userConfigTO = new UserConfigTO();
-			userConfigTO.getSystemProperties().put("storage.passwordsecret", StringUtil.toHex(passwordSecret));
-			userConfigTO.getSystemProperties().put("storage.passwordiv", StringUtil.toHex(passwordIv));
+			userConfigTO.getSystemProperties().put(UserConfigKeys.System.STORAGE_SECRET.toString(), StringUtil.toHex(passwordSecret));
+			userConfigTO.getSystemProperties().put(UserConfigKeys.System.STORAGE_IV.toString(), StringUtil.toHex(passwordIv));
 			UserConfigTO.save(userConfigTO, userConfigFile);
 		}
 		catch (Exception e) {

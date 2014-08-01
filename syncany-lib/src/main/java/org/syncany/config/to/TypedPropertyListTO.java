@@ -22,6 +22,7 @@ import org.simpleframework.xml.Attribute;
 import org.simpleframework.xml.ElementMap;
 import org.simpleframework.xml.core.Commit;
 import org.simpleframework.xml.core.Persist;
+import org.syncany.config.ConfigException;
 import org.syncany.config.to.converters.PasswordTypedPropertyElementConverter;
 import org.syncany.config.to.converters.TypedPropertyElementConverter;
 
@@ -40,14 +41,16 @@ import java.util.logging.Logger;
  * annotation-based configuration.
  *
  * @see <a href="http://simple.sourceforge.net/">Simple framework</a> at simple.sourceforge.net
+ *
  * @author Philipp C. Heckel <philipp.heckel@gmail.com>
+ * @author Christian Roth <christian.roth@port17.de>
  */
 public abstract class TypedPropertyListTO {
 	private static final Logger logger = Logger.getLogger(TypedPropertyListTO.class.getSimpleName());
 	private static final Map<String, Class<? extends TypedPropertyElementConverter>> CONVERTERS = Maps.newHashMap();
 
 	static {
-		CONVERTERS.put(PasswordTypedPropertyElementConverter.PROPERTY_NAME, PasswordTypedPropertyElementConverter.class);
+		CONVERTERS.put(PasswordTypedPropertyElementConverter.PROPERTY_NAME.toLowerCase(), PasswordTypedPropertyElementConverter.class);
 	}
 
 	@Attribute(required = true)
@@ -73,37 +76,43 @@ public abstract class TypedPropertyListTO {
 	}
 
 	@Commit
-	public void commit() {
-    if (settings == null) {
-      return;
-    }
+	public void commit() throws ConfigException {
+		if (settings == null) {
+			return;
+		}
 
-		for (String converter : CONVERTERS.keySet()) {
-			if (settings.containsKey(converter))
-				logger.log(Level.INFO, "Found an element which needs to be converted before restoring.");
-			try {
-				settings.put(converter, CONVERTERS.get(converter).newInstance().from(settings.get(converter)));
-			}
-			catch (Exception e) {
-				logger.log(Level.WARNING, "Unable to convert " + converter + ", ignoring", e);
+		for (String setting : settings.keySet()) {
+			String settingLC = setting.toLowerCase();
+
+			if (CONVERTERS.containsKey(settingLC)) {
+				try {
+					settings.put(setting, CONVERTERS.get(settingLC).newInstance().from(settings.get(setting)));
+				}
+				catch (Exception e) {
+					logger.log(Level.SEVERE, "Unable to convert " + setting + " in xml property list before restoring", e);
+					throw new ConfigException("Unable to convert " + setting + " in xml property list before restoring", e);
+				}
 			}
 		}
 	}
 
 	@Persist
-	public void prepare() {
+	public void prepare() throws ConfigException {
 		if (settings == null) {
-      return;
-    }
+			return;
+		}
 
-		for (String converter : CONVERTERS.keySet()) {
-			if (settings.containsKey(converter))
-				logger.log(Level.INFO, "Found an element which needs to be converted before saving.");
-			try {
-				settings.put(converter, CONVERTERS.get(converter).newInstance().to(settings.get(converter)));
-			}
-			catch (Exception e) {
-				logger.log(Level.WARNING, "Unable to convert " + converter + ", ignoring", e);
+		for (String setting : settings.keySet()) {
+			String settingLC = setting.toLowerCase();
+
+			if (CONVERTERS.containsKey(settingLC)) {
+				try {
+					settings.put(setting, CONVERTERS.get(settingLC).newInstance().to(settings.get(setting)));
+				}
+				catch (Exception e) {
+					logger.log(Level.SEVERE, "Unable to convert " + setting + " in xml property list before saving", e);
+					throw new ConfigException("Unable to convert " + setting + " in xml property list before saving", e);
+				}
 			}
 		}
 	}

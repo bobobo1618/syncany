@@ -18,12 +18,29 @@
 package org.syncany.config.to.converters;
 
 /**
+ * Interface defining methods which every {@link TypedPropertyElementConverter} has to support.
+ *
  * @author Christian Roth <christian.roth@port17.de>
  */
 
 public interface TypedPropertyElementConverter {
 
-  public String from(String in) throws Exception;
-  public String to(String out) throws Exception;
+	/**
+	 * Method invoked when {@link org.simpleframework.xml.Serializer} wants to restore a property list from a xml-file.
+	 *
+	 * @param in The string representation in the xml file
+	 * @return The converted string representation
+	 * @throws Exception Thrown if conversion failed
+	 */
+	public String from(String in) throws Exception;
+
+  /**
+   * Method invoked when {@link org.simpleframework.xml.Serializer} wants to store a property list to a xml-file.
+   *
+   * @param out The string representation while deserialized
+   * @return The converted string representation to be stored in the xml file
+   * @throws Exception Thrown if conversion failed
+   */
+	public String to(String out) throws Exception;
 
 }
