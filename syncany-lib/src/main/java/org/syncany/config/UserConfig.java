@@ -17,17 +17,16 @@
  */
 package org.syncany.config;
 
-import org.syncany.config.to.UserConfigTO;
-import org.syncany.util.EnvironmentUtil;
-import org.syncany.util.StringUtil;
-
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
-import java.math.BigInteger;
 import java.security.KeyStore;
-import java.security.SecureRandom;
 import java.util.Map;
+
+import org.syncany.config.to.UserConfigTO;
+import org.syncany.crypto.CipherUtil;
+import org.syncany.util.ByteArray;
+import org.syncany.util.EnvironmentUtil;
 
 /**
  * Represents the configuration parameters and application user directory
@@ -55,6 +54,9 @@ public class UserConfig {
 	private static File userConfigFile;
 	private static File userTrustStoreFile;
 	private static KeyStore userTrustStore;
+	
+	private static byte[] sensitiveValueEncryptionKey;
+	private static byte[] sensitiveValueEncryptionIV;
 
 	static {
 		init();
@@ -126,6 +128,14 @@ public class UserConfig {
 			throw new RuntimeException("Cannot store truststore to file " + userTrustStoreFile, e);
 		}
 	}
+	
+	public static byte[] getSensitiveValueEncryptionKey() {
+		return sensitiveValueEncryptionKey;
+	}
+
+	public static byte[] getSensitiveValueEncryptionIV() {
+		return sensitiveValueEncryptionIV;
+	}
 
 	private static void initUserAppDirs() {
 		userConfigDir = (EnvironmentUtil.isWindows()) ? USER_APP_DIR_WINDOWS : USER_APP_DIR_UNIX_LIKE;
@@ -149,10 +159,12 @@ public class UserConfig {
 		try {
 			UserConfigTO userConfigTO = UserConfigTO.load(userConfigFile);
 
+			sensitiveValueEncryptionKey = userConfigTO.getSensitiveValueEncryptionKey().getArray();
+			sensitiveValueEncryptionIV = userConfigTO.getSensitiveValueEncryptionIV().getArray();
+			
 			for (Map.Entry<String, String> systemProperty : userConfigTO.getSystemProperties().entrySet()) {
-				System.setProperty(UserConfigKeys.System.fromString(systemProperty.getKey()).toString(), systemProperty.getValue());
-			}
-
+				System.setProperty(systemProperty.getKey(), systemProperty.getValue());
+			}			
 		}
 		catch (ConfigException e) {
 			System.err.println("ERROR: " + e.getMessage());
@@ -163,13 +175,14 @@ public class UserConfig {
 
 	private static void writeDefaultUserConfigFile(File userConfigFile) {
 		try {
-			// generate a passwordsecret and a iv
-			byte[] passwordSecret = new BigInteger(255, new SecureRandom()).toByteArray();
-			byte[] passwordIv = new BigInteger(127, new SecureRandom()).toByteArray();
+			ByteArray sensitiveValueEncryptionKey = new ByteArray(CipherUtil.createRandomArray(16)); // AES-128 Key
+			ByteArray sensitiveValueEncryptionIV = new ByteArray(CipherUtil.createRandomArray(16)); // AES IV
 
 			UserConfigTO userConfigTO = new UserConfigTO();
-			userConfigTO.getSystemProperties().put(UserConfigKeys.System.STORAGE_SECRET.toString(), StringUtil.toHex(passwordSecret));
-			userConfigTO.getSystemProperties().put(UserConfigKeys.System.STORAGE_IV.toString(), StringUtil.toHex(passwordIv));
+			
+			userConfigTO.setSensitiveValueEncryptionKey(sensitiveValueEncryptionKey);
+			userConfigTO.setSensitiveValueEncryptionIV(sensitiveValueEncryptionIV);
+			
 			UserConfigTO.save(userConfigTO, userConfigFile);
 		}
 		catch (Exception e) {

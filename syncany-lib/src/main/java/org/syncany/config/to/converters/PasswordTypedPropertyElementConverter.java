@@ -17,17 +17,19 @@
  */
 package org.syncany.config.to.converters;
 
-import com.google.common.base.Charsets;
-import org.syncany.config.UserConfigKeys;
-import org.syncany.crypto.CipherException;
-import org.syncany.crypto.CipherUtil;
-import org.syncany.util.StringUtil;
+import java.security.NoSuchAlgorithmException;
 
 import javax.crypto.Cipher;
 import javax.crypto.NoSuchPaddingException;
 import javax.crypto.spec.IvParameterSpec;
 import javax.crypto.spec.SecretKeySpec;
-import java.security.NoSuchAlgorithmException;
+
+import org.syncany.config.UserConfig;
+import org.syncany.crypto.CipherException;
+import org.syncany.crypto.CipherUtil;
+import org.syncany.util.StringUtil;
+
+import com.google.common.base.Charsets;
 
 /**
  * Passwords (i.e. fields named password) in configuration files are stored encrypted with AES/CBC/PKCS5PADDING using
@@ -40,12 +42,13 @@ import java.security.NoSuchAlgorithmException;
 public class PasswordTypedPropertyElementConverter implements TypedPropertyElementConverter {
 	public static final String PROPERTY_NAME = "password";
 	private static final String CIPHER_NAME = "AES/CBC/PKCS5PADDING";
+	private static final String KEY_TYPE = "AES";
 
 	private final Cipher cipher;
 
 	public PasswordTypedPropertyElementConverter() throws NoSuchPaddingException, NoSuchAlgorithmException, CipherException {
 		CipherUtil.enableUnlimitedStrength();
-		cipher = Cipher.getInstance("AES");
+		cipher = Cipher.getInstance(CIPHER_NAME);
 	}
 
 	/**
@@ -60,8 +63,8 @@ public class PasswordTypedPropertyElementConverter implements TypedPropertyEleme
 			return "";
 		}
 
-		cipher.init(Cipher.DECRYPT_MODE, new SecretKeySpec(StringUtil.fromHex(System.getProperty(UserConfigKeys.System.STORAGE_SECRET.toString())),
-				CIPHER_NAME), new IvParameterSpec(StringUtil.fromHex(System.getProperty(UserConfigKeys.System.STORAGE_IV.toString()))));
+		cipher.init(Cipher.DECRYPT_MODE, new SecretKeySpec(UserConfig.getSensitiveValueEncryptionKey(), KEY_TYPE),
+				new IvParameterSpec(UserConfig.getSensitiveValueEncryptionIV()));
 
 		return new String(cipher.doFinal(StringUtil.fromHex(in)));
 	}
@@ -77,8 +80,9 @@ public class PasswordTypedPropertyElementConverter implements TypedPropertyEleme
 		if (out == null) {
 			return "";
 		}
-		cipher.init(Cipher.ENCRYPT_MODE, new SecretKeySpec(StringUtil.fromHex(System.getProperty(UserConfigKeys.System.STORAGE_SECRET.toString())),
-				CIPHER_NAME), new IvParameterSpec(StringUtil.fromHex(System.getProperty(UserConfigKeys.System.STORAGE_IV.toString()))));
+		
+		cipher.init(Cipher.ENCRYPT_MODE, new SecretKeySpec(UserConfig.getSensitiveValueEncryptionKey(), KEY_TYPE),
+				new IvParameterSpec(UserConfig.getSensitiveValueEncryptionIV()));
 
 		return StringUtil.toHex(cipher.doFinal(out.getBytes(Charsets.UTF_8)));
 	}

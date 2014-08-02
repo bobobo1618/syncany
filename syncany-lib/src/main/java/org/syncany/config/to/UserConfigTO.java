@@ -21,11 +21,20 @@ import java.io.File;
 import java.util.Map;
 import java.util.TreeMap;
 
+import org.simpleframework.xml.Element;
 import org.simpleframework.xml.ElementMap;
 import org.simpleframework.xml.Namespace;
 import org.simpleframework.xml.Root;
+import org.simpleframework.xml.Serializer;
+import org.simpleframework.xml.convert.Converter;
+import org.simpleframework.xml.convert.Registry;
+import org.simpleframework.xml.convert.RegistryStrategy;
 import org.simpleframework.xml.core.Persister;
+import org.simpleframework.xml.stream.InputNode;
+import org.simpleframework.xml.stream.OutputNode;
 import org.syncany.config.ConfigException;
+import org.syncany.util.ByteArray;
+import org.syncany.util.StringUtil;
 
 /**
  * The user config transfer object is a helper data structure that allows storing
@@ -40,6 +49,27 @@ import org.syncany.config.ConfigException;
 @Root(name="userConfig")
 @Namespace(reference="http://syncany.org/userconfig/1")
 public class UserConfigTO {
+	private static final Serializer serializer;
+	
+	static {
+		try {
+			Registry registry = new Registry();
+
+			registry.bind(ByteArray.class, new ByteArrayConverter());
+
+			serializer = new Persister(new RegistryStrategy(registry));
+		}
+		catch (Exception e) {
+			throw new RuntimeException(e);
+		}
+	}
+	
+	@Element(name = "sensitiveValueEncryptionKey", required = false)
+	private ByteArray sensitiveValueEncryptionKey;
+	
+	@Element(name = "sensitiveValueEncryptionIV", required = false)
+	private ByteArray sensitiveValueEncryptionIV;
+	
 	@ElementMap(name="systemProperties", entry="property", key="name", required=false, attribute=true)
 	private TreeMap<String, String> systemProperties;
 	
@@ -49,11 +79,27 @@ public class UserConfigTO {
 	
 	public Map<String, String> getSystemProperties() {
 		return systemProperties;
+	}		
+
+	public ByteArray getSensitiveValueEncryptionKey() {
+		return sensitiveValueEncryptionKey;
 	}
-	
+
+	public void setSensitiveValueEncryptionKey(ByteArray sensitiveValueEncryptionKey) {
+		this.sensitiveValueEncryptionKey = sensitiveValueEncryptionKey;
+	}
+
+	public ByteArray getSensitiveValueEncryptionIV() {
+		return sensitiveValueEncryptionIV;
+	}
+
+	public void setSensitiveValueEncryptionIV(ByteArray sensitiveValueEncryptionIV) {
+		this.sensitiveValueEncryptionIV = sensitiveValueEncryptionIV;
+	}
+
 	public static UserConfigTO load(File file) throws ConfigException {
 		try {
-			return new Persister().read(UserConfigTO.class, file);
+			return serializer.read(UserConfigTO.class, file);
 		}
 		catch (Exception e) {
 			throw new ConfigException("User config file cannot be read or is invalid: " + file, e);
@@ -62,10 +108,22 @@ public class UserConfigTO {
 	
 	public static void save(UserConfigTO userConfigTO, File file) throws ConfigException {
 		try {
-			new Persister().write(userConfigTO, file);
+			serializer.write(userConfigTO, file);
 		}
 		catch (Exception e) {
 			throw new ConfigException("Cannot write user config to file " + file, e);
+		}
+	}
+	
+	private static class ByteArrayConverter implements Converter<ByteArray> {
+		@Override
+		public ByteArray read(InputNode node) throws Exception {
+			return new ByteArray(StringUtil.fromHex(node.getValue()));
+		}
+
+		@Override
+		public void write(OutputNode node, ByteArray value) throws Exception {
+			node.setValue(StringUtil.toHex(value.getArray()));
 		}
 	}
 }
