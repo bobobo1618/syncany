@@ -46,7 +46,7 @@ import org.syncany.util.StringUtil;
  * @see <a href="http://simple.sourceforge.net/">Simple framework</a> at simple.sourceforge.net
  * @author Philipp C. Heckel <philipp.heckel@gmail.com>
  */
-@Root(name="userConfig")
+@Root(name="userConfig", strict=false)
 @Namespace(reference="http://syncany.org/userconfig/1")
 public class UserConfigTO {
 	private static final Serializer serializer;

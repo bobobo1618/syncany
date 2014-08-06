@@ -55,7 +55,8 @@ public class Config {
 	public static final String FILE_MASTER = "master";
 	public static final String FILE_IGNORE = ".syignore";
 	public static final String FILE_DATABASE = "local.db";
-
+	public static final String FILE_PORT = "port";
+		
 	private byte[] repoId;
 	private String machineName;
 	private String displayName;
