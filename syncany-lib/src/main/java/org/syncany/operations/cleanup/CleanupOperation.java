@@ -166,8 +166,9 @@ public class CleanupOperation extends AbstractTransferOperation {
 
 		remoteTransaction.commit();
 
-		setLastTimeCleaned(System.currentTimeMillis() / 1000);
+		setLastTimeCleaned(System.currentTimeMillis() / 1000);		
 		finishOperation();
+		
 		return updateResultCode(result);
 	}
 

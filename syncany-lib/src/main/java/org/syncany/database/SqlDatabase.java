@@ -101,6 +101,8 @@ public class SqlDatabase {
 			removeUnreferencedFileContents();
 			removeUnreferencedMultiChunks();
 			removeUnreferencedChunks();
+			
+			removeEmptyDatabaseVersionHeaders();
 		}
 		catch (SQLException e) {
 			throw new RuntimeException(e);
@@ -157,6 +159,10 @@ public class SqlDatabase {
 
 	public void removeDirtyDatabaseVersions(long newDatabaseVersionId) {
 		databaseVersionDao.removeDirtyDatabaseVersions(newDatabaseVersionId);
+	}
+
+	public void removeEmptyDatabaseVersionHeaders() {
+		databaseVersionDao.removeEmptyDatabaseVersionHeaders();
 	}
 
 	public Long getMaxDirtyVectorClock(String machineName) {
