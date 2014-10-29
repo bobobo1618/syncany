@@ -90,7 +90,7 @@ public class TransferSettingsTest {
 		TransferSettings tsRestored = confRestored.getTransferSettings();
 		assertNotNull(tsRestored);
 
-		DummyTransferManager transferManager = plugin.createTransferManager(tsRestored, config);
+		DummyTransferManager transferManager = (DummyTransferManager) plugin.createTransferManager(tsRestored, config);
 		assertNotNull(transferManager);
 
 		DummyTransferSettings dts = transferManager.getSettings();
@@ -106,13 +106,13 @@ public class TransferSettingsTest {
 	public void createNewValidConnectionTO() throws Exception {
 
 		TransferPlugin p = Plugins.get("dummy", TransferPlugin.class);
-		DummyTransferSettings ts = p.createEmptySettings();
+		DummyTransferSettings ts = (DummyTransferSettings) p.createEmptySettings();
 		ts.foo = "foo-value";
 		ts.number = 5;
 
 		assertTrue(ts.isValid());
 
-		DummyTransferManager dtm = p.createTransferManager(ts, config);
+		DummyTransferManager dtm = (DummyTransferManager) p.createTransferManager(ts, config);
 		DummyTransferSettings dts = dtm.getSettings();
 
 		assertEquals(dts.foo, "foo-value");

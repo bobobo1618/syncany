@@ -17,7 +17,15 @@
  */
 package org.syncany.plugins.transfer;
 
-import com.google.common.base.Objects;
+import java.io.ByteArrayInputStream;
+import java.io.File;
+import java.io.InputStream;
+import java.lang.reflect.Field;
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
+import java.lang.reflect.Type;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 import org.apache.commons.io.IOUtils;
 import org.simpleframework.xml.Attribute;
@@ -32,21 +40,12 @@ import org.syncany.crypto.CipherUtil;
 import org.syncany.crypto.SaltedSecretKey;
 import org.syncany.plugins.Encrypted;
 import org.syncany.plugins.Plugin;
-import org.syncany.plugins.Plugins;
 import org.syncany.plugins.Setup;
 import org.syncany.plugins.UserInteractionListener;
 import org.syncany.util.ReflectionUtil;
 import org.syncany.util.StringUtil;
 
-import java.io.ByteArrayInputStream;
-import java.io.File;
-import java.io.InputStream;
-import java.lang.reflect.Field;
-import java.lang.reflect.InvocationTargetException;
-import java.lang.reflect.Method;
-import java.lang.reflect.Type;
-import java.util.logging.Level;
-import java.util.logging.Logger;
+import com.google.common.base.Objects;
 
 /**
  * A connection represents the configuration settings of a storage/connection
@@ -60,12 +59,12 @@ import java.util.logging.Logger;
  */
 public abstract class TransferSettings {
 	private static final Logger logger = Logger.getLogger(TransferSettings.class.getName());
-	protected UserInteractionListener userInteractionListener;
+
+	private String lastValidationFailReason;
+	private UserInteractionListener userInteractionListener;
 
 	@Attribute
 	private String type = findPluginId();
-
-	private String lastValidationFailReason;
 
 	public UserInteractionListener getUserInteractionListener() {
 		return userInteractionListener;
@@ -265,23 +264,12 @@ public abstract class TransferSettings {
 
 		logger.log(Level.FINE, "Decrypted transfer setting values");
 	}
-
+	
 	private String findPluginId() {
-		try {
-			for (Plugin plugin : Plugins.list()) {
-				PluginSettings pluginSettings = plugin.getClass().getAnnotation(PluginSettings.class);
-
-				if (pluginSettings == null || pluginSettings.value().equals(this.getClass())) {
-					return plugin.getClass().newInstance().getId();
-				}
-			}
-
-			throw new RuntimeException("Unable to read type: No TransferPlugin is defined for these settings");
-		}
-		catch (Exception e) {
-			logger.log(Level.SEVERE, "Unable to read type: No TransferPlugin is defined for these settings", e);
-			throw new RuntimeException("Unable to read type: No TransferPlugin is defined for these settings", e);
-		}
+		String camelCasePluginId = getClass().getSimpleName().replace(TransferSettings.class.getSimpleName(), "");
+		String pluginId = StringUtil.toSnakeCase(camelCasePluginId);
+		
+		return pluginId;
 	}
 
 	@Override

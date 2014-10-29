@@ -102,7 +102,7 @@ public abstract class ReflectionUtil {
 		return null;
 	}
 
-	// java 1.7 does not support getTypeName() :(
+	// Java 1.7 does not support getTypeName() :(
 	public static Class<?> getClassFromType(Type type) {
 		String fullName = type.toString();
 

@@ -20,7 +20,6 @@ package org.syncany.plugins.local;
 import org.syncany.config.Config;
 import org.syncany.plugins.Plugin;
 import org.syncany.plugins.transfer.StorageException;
-import org.syncany.plugins.transfer.TransferManager;
 import org.syncany.plugins.transfer.TransferPlugin;
 import org.syncany.plugins.transfer.TransferSettings;
 
@@ -43,12 +42,12 @@ public class LocalPlugin extends TransferPlugin {
 	}
 
 	@Override
-	public TransferSettings createEmptySettings() throws StorageException {
+	public LocalTransferSettings createEmptySettings() throws StorageException {
 		return new LocalTransferSettings();
 	}
 
 	@Override
-	public TransferManager createTransferManager(TransferSettings transferSettings, Config config) throws StorageException {
+	public LocalTransferManager createTransferManager(TransferSettings transferSettings, Config config) throws StorageException {
 		return new LocalTransferManager((LocalTransferSettings) transferSettings, config);
 	}
 }
