@@ -28,36 +28,6 @@ import org.syncany.plugins.Plugins;
  */
 public abstract class TransferPluginUtil {
 	/**
-	 * Determines the {@link TransferSettings} class for a given
-	 * {@link TransferPlugin} class using the corresponding
-	 * {@link PluginSettings} annotation.
-	 */
-	public static Class<? extends TransferSettings> getTransferSettingsClass(Class<? extends TransferPlugin> transferPluginClass) {
-		PluginSettings settings = transferPluginClass.getAnnotation(PluginSettings.class);
-
-		if (settings == null) {
-			throw new RuntimeException("There are no transfer settings attached to that plugin (" + transferPluginClass.getName() + ")");
-		}
-
-		return settings.value();
-	}
-
-	/**
-	 * Determines the {@link TransferManager} class for a given
-	 * {@link TransferPlugin} class using the corresponding
-	 * {@link PluginManager} annotation.
-	 */
-	public static Class<? extends TransferManager> getTransferManagerClass(Class<? extends TransferPlugin> transferPluginClass) {
-		PluginManager manager = transferPluginClass.getAnnotation(PluginManager.class);
-
-		if (manager == null) {
-			throw new RuntimeException("There is no transfer manager attached to that plugin (" + transferPluginClass.getName() + ")");
-		}
-
-		return manager.value();
-	}
-
-	/**
 	 * Determines the {@link TransferPlugin} class for a given 
 	 * {@link TransferSettings} class.
 	 */
