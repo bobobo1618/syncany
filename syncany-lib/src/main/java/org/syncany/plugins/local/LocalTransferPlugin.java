@@ -36,8 +36,8 @@ import org.syncany.plugins.transfer.TransferSettings;
  *
  * @author Philipp C. Heckel <philipp.heckel@gmail.com>
  */
-public class LocalPlugin extends TransferPlugin {
-	public LocalPlugin() {
+public class LocalTransferPlugin extends TransferPlugin {
+	public LocalTransferPlugin() {
 		super("local");
 	}
 

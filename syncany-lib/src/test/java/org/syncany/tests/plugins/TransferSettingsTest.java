@@ -17,6 +17,10 @@
  */
 package org.syncany.tests.plugins;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
+
 import java.io.File;
 import java.nio.file.Files;
 import java.nio.file.Paths;
@@ -36,8 +40,6 @@ import org.syncany.plugins.local.LocalTransferSettings;
 import org.syncany.plugins.transfer.TransferPlugin;
 import org.syncany.plugins.transfer.TransferSettings;
 import org.syncany.tests.util.TestConfigUtil;
-
-import static org.junit.Assert.*;
 
 public class TransferSettingsTest {
 	private File tmpFile;
@@ -92,14 +94,6 @@ public class TransferSettingsTest {
 
 		DummyTransferManager transferManager = (DummyTransferManager) plugin.createTransferManager(tsRestored, config);
 		assertNotNull(transferManager);
-
-		DummyTransferSettings dts = transferManager.getSettings();
-		assertNotNull(dts);
-
-		assertEquals(dts.foo, fooTest);
-		assertEquals(dts.baz, bazTest);
-		assertEquals(dts.number, numberTest);
-
 	}
 
 	@Test
@@ -111,24 +105,6 @@ public class TransferSettingsTest {
 		ts.number = 5;
 
 		assertTrue(ts.isValid());
-
-		DummyTransferManager dtm = (DummyTransferManager) p.createTransferManager(ts, config);
-		DummyTransferSettings dts = dtm.getSettings();
-
-		assertEquals(dts.foo, "foo-value");
-		assertEquals(dts.number, 5);
-		assertNull(dts.baz);
-
-	}
-
-	@Test
-	public void createNewInvalidConnectionTO() throws Exception {
-
-		TransferPlugin p = Plugins.get("dummy", TransferPlugin.class);
-		DummyTransferSettings ts = p.createEmptySettings();
-
-		assertFalse(ts.isValid());
-
 	}
 
 	@Test
@@ -155,7 +131,5 @@ public class TransferSettingsTest {
 
 		// boom
 		DummyTransferSettings settings = serializer.read(DummyTransferSettings.class, tmpFile);
-
 	}
-
 }

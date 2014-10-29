@@ -55,7 +55,7 @@ public class PluginOptionsTest {
 			TransferSettings nestedSettings = (TransferSettings) ReflectionUtil.getClassFromType(option.getType()).newInstance();
 			settings.setField(option.getField().getName(), nestedSettings);
 
-			for (PluginOption nItem : ((NestedPluginOption) option).getNestedOptions()) {
+			for (PluginOption nItem : ((NestedPluginOption) option).getOptions()) {
 				askNestedPluginSettings(nestedSettings, nItem, ++wrap);
 			}
 		}
