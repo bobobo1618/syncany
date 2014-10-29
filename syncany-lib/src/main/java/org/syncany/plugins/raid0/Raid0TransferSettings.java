@@ -18,7 +18,7 @@
 package org.syncany.plugins.raid0;
 
 import org.simpleframework.xml.Element;
-import org.syncany.plugins.Setup;
+import org.syncany.plugins.transfer.Setup;
 import org.syncany.plugins.transfer.TransferSettings;
 
 /**

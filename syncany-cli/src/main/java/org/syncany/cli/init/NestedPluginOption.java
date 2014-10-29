@@ -15,14 +15,16 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-package org.syncany.plugins;
+package org.syncany.cli.init;
 
 import java.lang.reflect.Field;
 import java.lang.reflect.Type;
 import java.util.List;
 
+import org.syncany.plugins.transfer.PluginOptionCallback;
+
 /**
- * This class represents the a 
+ * This class represents the a nested plugin 
  * 
  * @author Christian Roth <christian.roth@port17.de>
  */

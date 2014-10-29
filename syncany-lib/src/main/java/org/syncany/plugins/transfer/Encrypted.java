@@ -15,20 +15,21 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-package org.syncany.plugins;
+package org.syncany.plugins.transfer;
+
+import java.lang.annotation.ElementType;
+import java.lang.annotation.Retention;
+import java.lang.annotation.RetentionPolicy;
+import java.lang.annotation.Target;
 
 /**
- * Option callbacks are called during initialization and before the 
- * corresponding setting is queried.
+ * Annotating a field with {@link org.syncany.plugins.transfer.Encrypted} implies that the field's value shell be stored
+ * encrypted in the xml representation. Recommended when storing login credentials.
  *
- * @see org.syncany.plugins.PluginOptions
  * @author Christian Roth <christian.roth@port17.de>
  */
-public interface PluginOptionCallback {
-	/**
-	 * Called before a setting value is queried.
-	 *
-	 * @return The message to display.
-	 */
-	public String preQueryCallback();
+@Target(ElementType.FIELD)
+@Retention(RetentionPolicy.RUNTIME)
+public @interface Encrypted {
+	// empty
 }
