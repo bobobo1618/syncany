@@ -23,10 +23,22 @@ import org.syncany.plugins.transfer.TransferPlugin;
 import org.syncany.plugins.transfer.TransferSettings;
 
 /**
- * @author Christian Roth <christian.roth@port17.de>
+ * RAID0-like storage {@link TransferPlugin} for Syncany.
+ * 
+ * <p>The RAID0 plugin evenly splits the multichunk data across two
+ * backend storages, thereby allowing for a maximum storage of 2*min(N,M)
+ * -- with N and M being the disk space of the two back storages.
+ * 
+ * <p>The plugin offers no redundancy or additional availability mechanisms.
+ * Like in actual RAID0 systems, the plugin only increases disk space.
+ * 
+ * <p>All metadata is stored on storage 1, only multichunks split evenly 
+ * across both storage 1 and 2.
+ * 
+ * @author Philipp C. Heckel <philipp.heckel@gmail.com>
  */
-public class Raid0TransferPlugin extends TransferPlugin {
-	public Raid0TransferPlugin() {
+public class Raid0Plugin extends TransferPlugin {
+	public Raid0Plugin() {
 		super("raid0");
 	}
 
