@@ -18,9 +18,16 @@
 package org.syncany.plugins.transfer;
 
 import java.io.File;
+import java.util.ArrayList;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.ThreadPoolExecutor;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
+import org.hsqldb.lib.Storage;
 import org.syncany.config.Config;
 import org.syncany.config.LocalEventBus;
 import org.syncany.operations.daemon.messages.UpUploadFileInTransactionSyncExternalEvent;
@@ -52,6 +59,8 @@ public class RemoteTransaction {
 		this.transactionTO = new TransactionTO(config.getMachineName());
 		this.eventBus = LocalEventBus.getInstance();
 	}
+
+    private int numUploadThreads = 5;
 
 	/**
 	 * Returns whether the transaction is empty.
@@ -154,34 +163,60 @@ public class RemoteTransaction {
 	}
 
 	private void uploadAndMoveToTempLocation() throws StorageException {
-		TransactionStats stats = gatherTransactionStats();
-		int uploadFileIndex = 0;
+		final TransactionStats stats = gatherTransactionStats();
+        final AtomicInteger uploadFileIndex = new AtomicInteger(0);
+        
+        LinkedBlockingQueue<Runnable> queue = new LinkedBlockingQueue<Runnable>(transactionTO.getActions().size());
 
-		for (ActionTO action : transactionTO.getActions()) {
-			RemoteFile tempRemoteFile = action.getTempRemoteFile();
+		for (final ActionTO action : transactionTO.getActions()) {
+            queue.add(new Runnable() {
+                @Override
+                public void run() {
 
-			if (action.getType().equals(ActionTO.TYPE_UPLOAD)) {
-				File localFile = action.getLocalTempLocation();
-				long localFileSize = localFile.length();
+                    RemoteFile tempRemoteFile = action.getTempRemoteFile();
 
-				eventBus.post(new UpUploadFileInTransactionSyncExternalEvent(config.getLocalDir().getAbsolutePath(), ++uploadFileIndex,
-						stats.totalUploadFileCount, localFileSize, stats.totalUploadSize));
+                    try {
+                        if (action.getType().equals(ActionTO.TYPE_UPLOAD)) {
+                            File localFile = action.getLocalTempLocation();
+                            long localFileSize = localFile.length();
 
-				logger.log(Level.INFO, "- Uploading {0} to temp. file {1} ...", new Object[] { localFile, tempRemoteFile });
-				transferManager.upload(localFile, tempRemoteFile);
-			}
-			else if (action.getType().equals(ActionTO.TYPE_DELETE)) {
-				RemoteFile remoteFile = action.getRemoteFile();
+                            eventBus.post(new UpUploadFileInTransactionSyncExternalEvent(config.getLocalDir().getAbsolutePath(), uploadFileIndex.incrementAndGet(),
+                                    stats.totalUploadFileCount, localFileSize, stats.totalUploadSize));
 
-				try {
-					logger.log(Level.INFO, "- Moving {0} to temp. file {1} ...", new Object[] { remoteFile, tempRemoteFile });
-					transferManager.move(remoteFile, tempRemoteFile);
-				}
-				catch (StorageMoveException e) {
-					logger.log(Level.INFO, "  -> FAILED (don't care!), because the remoteFile does not exist: " + remoteFile);
-				}
-			}
+                            logger.log(Level.INFO, "- Uploading {0} to temp. file {1} ...", new Object[]{localFile, tempRemoteFile});
+                            transferManager.upload(localFile, tempRemoteFile);
+                        } else if (action.getType().equals(ActionTO.TYPE_DELETE)) {
+                            RemoteFile remoteFile = action.getRemoteFile();
+
+                            try {
+                                logger.log(Level.INFO, "- Moving {0} to temp. file {1} ...", new Object[]{remoteFile, tempRemoteFile});
+                                transferManager.move(remoteFile, tempRemoteFile);
+                            } catch (StorageMoveException e) {
+                                logger.log(Level.INFO, "  -> FAILED (don't care!), because the remoteFile does not exist: " + remoteFile);
+                            }
+                        }
+                    } catch (StorageException e) {
+                        logger.log(Level.WARNING, "Action for {0} encountered a storage issue: {1}", new Object[]{action.getTempRemoteFile(), e});
+                    }
+                }
+            });
 		}
+
+        ExecutorService workerPool = new ThreadPoolExecutor(1, numUploadThreads, 100, TimeUnit.SECONDS, queue);
+
+        while(true){
+            try {
+                Boolean result = workerPool.awaitTermination(120, TimeUnit.SECONDS);
+                if(result){
+                    break;
+                } else {
+                    logger.log(Level.INFO, "Waited 120 seconds for pool, continuing.");
+                }
+            } catch (InterruptedException e) {
+                logger.log(Level.INFO, "Executor wait loop was interrupted.");
+            }
+        }
+
 	}
 
 	private TransactionStats gatherTransactionStats() {
