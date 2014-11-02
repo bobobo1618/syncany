@@ -18,7 +18,6 @@
 package org.syncany.plugins.transfer;
 
 import java.io.File;
-import java.util.ArrayList;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.ThreadPoolExecutor;
@@ -27,7 +26,6 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
-import org.hsqldb.lib.Storage;
 import org.syncany.config.Config;
 import org.syncany.config.LocalEventBus;
 import org.syncany.operations.daemon.messages.UpUploadFileInTransactionSyncExternalEvent;
@@ -165,7 +163,7 @@ public class RemoteTransaction {
 	private void uploadAndMoveToTempLocation() throws StorageException {
 		final TransactionStats stats = gatherTransactionStats();
         final AtomicInteger uploadFileIndex = new AtomicInteger(0);
-        
+
         LinkedBlockingQueue<Runnable> queue = new LinkedBlockingQueue<Runnable>(transactionTO.getActions().size());
 
 		for (final ActionTO action : transactionTO.getActions()) {
