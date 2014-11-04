@@ -166,8 +166,10 @@ public class RemoteTransaction {
 
         LinkedBlockingQueue<Runnable> queue = new LinkedBlockingQueue<Runnable>(transactionTO.getActions().size());
 
-		for (final ActionTO action : transactionTO.getActions()) {
-            queue.add(new Runnable() {
+        ExecutorService workerPool = new ThreadPoolExecutor(numUploadThreads, numUploadThreads, 100, TimeUnit.SECONDS, queue);
+
+        for (final ActionTO action : transactionTO.getActions()) {
+            workerPool.execute(new Runnable() {
                 @Override
                 public void run() {
 
@@ -180,7 +182,7 @@ public class RemoteTransaction {
 
                             eventBus.post(new UpUploadFileInTransactionSyncExternalEvent(config.getLocalDir().getAbsolutePath(), uploadFileIndex.incrementAndGet(),
                                     stats.totalUploadFileCount, localFileSize, stats.totalUploadSize));
-
+                            logger.log(Level.INFO, Thread.currentThread().getName());
                             logger.log(Level.INFO, "- Uploading {0} to temp. file {1} ...", new Object[]{localFile, tempRemoteFile});
                             transferManager.upload(localFile, tempRemoteFile);
                         } else if (action.getType().equals(ActionTO.TYPE_DELETE)) {
@@ -198,23 +200,17 @@ public class RemoteTransaction {
                     }
                 }
             });
-		}
-
-        ExecutorService workerPool = new ThreadPoolExecutor(1, numUploadThreads, 100, TimeUnit.SECONDS, queue);
-
-        while(true){
-            try {
-                Boolean result = workerPool.awaitTermination(120, TimeUnit.SECONDS);
-                if(result){
-                    break;
-                } else {
-                    logger.log(Level.INFO, "Waited 120 seconds for pool, continuing.");
-                }
-            } catch (InterruptedException e) {
-                logger.log(Level.INFO, "Executor wait loop was interrupted.");
-            }
         }
 
+        workerPool.shutdown();
+
+        try {
+            while(!workerPool.awaitTermination(120, TimeUnit.SECONDS)){
+                logger.log(Level.INFO, "Waited 120 seconds for pool, continuing.");
+            }
+        } catch (InterruptedException e) {
+            logger.log(Level.INFO, "Executor wait loop was interrupted.");
+        }
 	}
 
 	private TransactionStats gatherTransactionStats() {

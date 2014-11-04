@@ -26,6 +26,10 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.ThreadPoolExecutor;
+import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -152,19 +156,40 @@ public class TransactionAwareTransferManager implements TransferManager {
 	public void cleanTransactions() throws StorageException {
 		Objects.requireNonNull(config, "Cannot clean transactions if config is null.");
 
-		Map<TransactionTO, TransactionRemoteFile> transactions = retrieveRemoteTransactions();
-		RemoteTransaction rollbackTransaction = new RemoteTransaction(config, this);
+		final Map<TransactionTO, TransactionRemoteFile> transactions = retrieveRemoteTransactions();
+		final RemoteTransaction rollbackTransaction = new RemoteTransaction(config, this);
 
-		for (TransactionTO potentiallyCancelledTransaction : transactions.keySet()) {
-			boolean isCancelledOwnTransaction = potentiallyCancelledTransaction.getMachineName().equals(config.getMachineName());
+        ExecutorService workerPool = new ThreadPoolExecutor(5, 5, 100, TimeUnit.SECONDS, new LinkedBlockingQueue<Runnable>());
 
-			// If this transaction is from our machine, delete all permanent or temporary files in this transaction.
-			if (isCancelledOwnTransaction) {
-				rollbackSingleTransaction(rollbackTransaction, potentiallyCancelledTransaction, transactions.get(potentiallyCancelledTransaction));
-			}
+		for (final TransactionTO potentiallyCancelledTransaction : transactions.keySet()) {
+            workerPool.execute(new Runnable() {
+                @Override
+                public void run() {
+                    boolean isCancelledOwnTransaction = potentiallyCancelledTransaction.getMachineName().equals(config.getMachineName());
+
+                    // If this transaction is from our machine, delete all permanent or temporary files in this transaction.
+                    if (isCancelledOwnTransaction) {
+                        try {
+                            rollbackSingleTransaction(rollbackTransaction, potentiallyCancelledTransaction, transactions.get(potentiallyCancelledTransaction));
+                        } catch (StorageException e) {
+                            logger.log(Level.WARNING, "Failed to rollback a transaction! This is bad.");
+                        }
+                    }
+                }
+            });
 		}
 
-		// Execute transaction (if it isn't empty)
+        workerPool.shutdown();
+        try {
+            while(!workerPool.awaitTermination(120, TimeUnit.SECONDS)){
+                logger.log(Level.INFO, "Waited 2 minutes for rollbacks to complete.");
+            }
+        } catch (InterruptedException e) {
+            logger.log(Level.INFO, "Rollbacks interrupted.");
+        }
+
+
+        // Execute transaction (if it isn't empty)
 		if (!rollbackTransaction.isEmpty()) {
 			logger.log(Level.INFO, "CLEAN TX: Committing rollback transaction ...");
 			rollbackTransaction.commit();
